@@ -1,0 +1,69 @@
+import networkx as nx
+from mapa import criar_grafo_cidade # Importa o grafo do Passo 1
+
+def encontrar_rota_otimizada(grafo, inicio, pontos_entrega):
+    """
+    Encontra a rota otimizada (menor caminho) usando A* 
+    para um conjunto de entregas.
+    
+    Nota: Este é um exemplo simples. O problema de visitar MÚLTIPLOS
+    pontos é o "Problema do Caixeiro Viajante" (TSP), que é complexo.
+    
+    Para este trabalho, vamos calcular o caminho A* do início
+    até a primeira entrega, depois da primeira para a segunda, etc.
+    """
+    rota_completa = []
+    custo_total = 0
+    
+    ponto_atual = inicio
+    
+    for proximo_ponto in pontos_entrega:
+        try:
+            # Encontra o menor caminho A* entre o ponto atual e o próximo 
+            # O 'weight' é crucial para o A* funcionar corretamente 
+            rota_trecho = nx.astar_path(grafo, ponto_atual, proximo_ponto, weight='weight')
+            
+            # Calcula o custo (distância) desse trecho
+            custo_trecho = nx.astar_path_length(grafo, ponto_atual, proximo_ponto, weight='weight')
+            
+            print(f"Trecho: {ponto_atual} -> {proximo_ponto} | Custo: {custo_trecho}")
+            print(f"  Caminho: {rota_trecho}")
+            
+            # Adiciona o trecho à rota completa (removendo a duplicata do início)
+            if rota_completa:
+                rota_completa.extend(rota_trecho[1:])
+            else:
+                rota_completa = rota_trecho
+                
+            custo_total += custo_trecho
+            ponto_atual = proximo_ponto # O ponto de chegada vira o novo ponto de partida
+            
+        except nx.NetworkXNoPath:
+            print(f"ERRO: Não há caminho entre {ponto_atual} e {proximo_ponto}")
+            return None, 0
+
+    return rota_completa, custo_total
+
+# --- Execução principal ---
+if __name__ == "__main__":
+    # 1. Carregar o mapa
+    mapa_cidade = criar_grafo_cidade()
+    
+    # 2. Definir um conjunto de entregas (um "cluster")
+    # Vamos supor que o entregador 1 pegou esse cluster:
+    cluster_1_entregas = ["Bairro A", "Bairro C", "Bairro E"]
+    
+    print("--- Calculando Rota Otimizada para Cluster 1 ---")
+    
+    # 3. Calcular a rota
+    rota, custo = encontrar_rota_otimizada(mapa_cidade, "Restaurante", cluster_1_entregas)
+    
+    if rota:
+        print("\n--- RESULTADO FINAL ---")
+        print(f"Rota Otimizada Completa: {' -> '.join(rota)}")
+        print(f"Custo Total (Distância/Tempo): {custo}")
+
+        # Comparação (simples)
+        custo_manual = 8 + 6 + 10 # Custo de ir direto Restaurante->B, B->C, C->E (Exemplo)
+        print(f"\nUma rota manual simples (ex: R->B->C->E) poderia custar: {custo_manual}")
+        print(f"Economia de {custo_manual - custo}!")
